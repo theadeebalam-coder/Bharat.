@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <title>Bharat.io – Contact Vehicle Owner</title>
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ======================
+       GLOBAL STYLES
+    ====================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      background: #f5f8ff;
+      color: #0a2540;
+    }
+
+    .app {
+      max-width: 420px;
+      margin: auto;
+      background: #ffffff;
+      min-height: 100vh;
+      box-shadow: 0 0 18px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ======================
+       HEADER
+    ====================== */
+    header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #eaeaea;
+      text-align: center;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    /* ======================
+       HERO / INFO
+    ====================== */
+    .intro {
+      padding: 18px 16px;
+    }
+
+    .intro h1 {
+      font-size: 20px;
+      margin-bottom: 6px;
+    }
+
+    .intro p {
+      font-size: 14px;
+      color: #555;
+      line-height: 1.5;
+    }
+
+    /* ======================
+       CARD
+    ====================== */
+    .card {
+      background: #f0f5ff;
+      margin: 16px;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .label {
+      font-size: 12px;
+      color: #777;
+      margin-top: 12px;
+    }
+
+    .value {
+      font-size: 15px;
+      font-weight: 500;
+      margin-top: 2px;
+      color: #0a2540;
+      word-wrap: break-word;
+    }
+
+    /* ======================
+       BUTTONS
+    ====================== */
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 10px;
+      text-align: center;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    .btn-primary {
+      background: #0a66ff;
+      color: #ffffff;
+    }
+
+    .btn-secondary {
+      background: #e8f0ff;
+      color: #0a66ff;
+    }
+
+    /* ======================
+       STATES
+    ====================== */
+    .center {
+      text-align: center;
+      padding: 50px 16px;
+    }
+
+    .center h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .center p {
+      font-size: 14px;
+      color: #555;
+    }
+
+    /* ======================
+       FOOTER
+    ====================== */
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 14px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    footer span {
+      color: #e63946;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    Vehicle Contact QR
+  </header>
+
+  <!-- INTRO -->
+  <div class="intro">
+    <h1>Contact Vehicle Owner</h1>
+    <p>
+      Scan this QR code to contact the vehicle owner
+      for parking issues or emergency situations.
+    </p>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="card" id="result">
+    <p>Loading vehicle details…</p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>❤️</span> 10% of our proceeds are used to feed the needy.
+    <br/>
+    © Bharat.io
+  </footer>
+
+</div>
+
+<script>
+/* =====================================================
+   CONFIGURATION
+===================================================== */
+
+/*
+  STEP 1:
+  Google Sheet ko "Publish to web" karo (CSV)
+  STEP 2:
+  Neeche apna CSV link paste karo
+*/
+const SHEET_CSV_URL =
+  "https://docs.google.com/spreadsheets/d/e/YOUR_SHEET_ID/pub?output=csv";
+
+/*
+  Sheet column order (example):
+  0 = QR_ID
+  1 = Vehicle Number
+  2 = Mobile Number
+  3 = Email
+  4 = Profession
+  5 = Work Description
+*/
+
+
+/* =====================================================
+   HELPER FUNCTIONS
+===================================================== */
+function getQueryParam(name) {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get(name);
+}
+
+
+/* =====================================================
+   MAIN LOGIC
+===================================================== */
+
+const qrId = getQueryParam("id");
+const resultBox = document.getElementById("result");
+
+/* 1️⃣ QR ID missing */
+if (!qrId) {
+  resultBox.innerHTML = `
+    <div class="center">
+      <h2>Invalid QR</h2>
+      <p>No QR ID found in the link.</p>
+    </div>
+  `;
+} else {
+
+  fetch(SHEET_CSV_URL)
+    .then(response => response.text())
+    .then(csv => {
+
+      const rows = csv.split("\n").map(r => r.split(","));
+      const dataRows = rows.slice(1);
+
+      const matchedRow = dataRows.find(r => r[0] === qrId);
+
+      /* 2️⃣ QR not registered */
+      if (!matchedRow) {
+        resultBox.innerHTML = `
+          <div class="center">
+            <h2>QR Not Registered</h2>
+            <p>
+              This vehicle has not been registered yet.
+              Please ask the owner to complete registration.
+            </p>
+
+            <a href="index.html" class="btn btn-secondary">
+              Register Vehicle
+            </a>
+          </div>
+        `;
+        return;
+      }
+
+      /* 3️⃣ Registered – show data */
+      const phone = matchedRow[2];
+      const email = matchedRow[3];
+      const profession = matchedRow[4];
+      const work = matchedRow[5];
+
+      resultBox.innerHTML = `
+        <div class="label">Profession</div>
+        <div class="value">${profession || "Not provided"}</div>
+
+        <div class="label">Work Description</div>
+        <div class="value">${work || "Not provided"}</div>
+
+        <a href="tel:${phone}" class="btn btn-primary">
+          📞 Call Vehicle Owner
+        </a>
+
+        ${
+          email
+            ? `<a href="mailto:${email}" class="btn btn-secondary">
+                 ✉️ Email Owner
+               </a>`
+            : ""
+        }
+      `;
+    })
+    .catch(() => {
+      resultBox.innerHTML = `
+        <div class="center">
+          <h2>Error</h2>
+          <p>Unable to load data. Please try again later.</p>
+        </div>
+      `;
+    });
+}
+</script>
+
+</body>
+</html>
